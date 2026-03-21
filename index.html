@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Kelly Education — Onboarding Reminders</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Chalkduster&family=Kalam:wght@300;400;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Kalam',cursive;background:#1a1a1a;overflow-x:hidden}
+
+/* CHALK TEXTURE */
+.chalkboard{
+  background:
+    radial-gradient(ellipse at 20% 30%, rgba(255,255,255,0.015) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, rgba(255,255,255,0.01) 0%, transparent 50%),
+    linear-gradient(160deg,#2d4a2d 0%,#1e3a1e 40%,#1a341a 70%,#243824 100%);
+  min-height:100vh;
+  position:relative;
+  overflow-x:hidden;
+}
+.chalkboard::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,255,255,0.008) 3px,rgba(255,255,255,0.008) 4px),
+    repeating-linear-gradient(90deg,transparent,transparent 3px,rgba(255,255,255,0.008) 3px,rgba(255,255,255,0.008) 4px);
+  pointer-events:none;z-index:0;
+}
+.chalkboard::after{
+  content:'';
+  position:fixed;inset:0;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;opacity:0.6;
+}
+
+/* CHALK FRAME */
+.chalk-frame{
+  border:12px solid #5c3d1a;
+  border-image:linear-gradient(45deg,#6b4a20,#4a2f0e,#7a5528,#3d2208) 1;
+  box-shadow:
+    inset 0 0 40px rgba(0,0,0,0.4),
+    0 0 0 4px #2a1a08,
+    0 8px 32px rgba(0,0,0,0.6),
+    0 0 80px rgba(0,0,0,0.3);
+  margin:20px;
+  min-height:calc(100vh - 40px);
+  position:relative;z-index:1;
+  border-radius:4px;
+}
+
+/* TRAY at bottom */
+.chalk-tray{
+  position:fixed;bottom:0;left:20px;right:20px;
+  height:28px;
+  background:linear-gradient(180deg,#5c3d1a 0%,#4a2f0e 50%,#3d2208 100%);
+  box-shadow:0 -2px 8px rgba(0,0,0,0.5);
+  z-index:100;
+  border-radius:0 0 4px 4px;
+  display:flex;align-items:center;justify-content:center;gap:20px;
+}
+.chalk-piece{
+  width:32px;height:10px;border-radius:3px;
+  box-shadow:inset 0 1px 3px rgba(255,255,255,0.3),0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* CHALK TEXT STYLE */
+.chalk-text{
+  color:rgba(255,255,255,0.88);
+  text-shadow:1px 1px 2px rgba(0,0,0,0.3),0 0 8px rgba(255,255,255,0.1);
+  font-family:'Caveat',cursive;
+}
+.chalk-title{
+  font-family:'Caveat',cursive;
+  font-size:clamp(28px,4vw,48px);
+  font-weight:700;
+  color:rgba(255,255,255,0.9);
+  text-shadow:2px 2px 4px rgba(0,0,0,0.4),0 0 20px rgba(255,255,255,0.1);
+  letter-spacing:1px;
+}
+.chalk-subtitle{
+  font-family:'Caveat',cursive;
+  font-size:clamp(14px,2vw,20px);
+  color:rgba(255,255,255,0.55);
+  letter-spacing:2px;
+}
+
+/* CHALK LINE */
+.chalk-line{
+  border:none;
+  border-top:2px solid rgba(255,255,255,0.2);
+  position:relative;
+  margin:16px 0;
+}
+.chalk-line::after{
+  content:'';
+  position:absolute;top:-1px;left:0;right:0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent);
+}
+
+/* HAND SELECTOR */
+.hand-container{
+  display:flex;align-items:center;justify-content:center;
+  gap:0;
+  position:relative;
+  padding:40px 20px 20px;
+}
+.hand-option{
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  cursor:pointer;
+  padding:20px 32px;
+  border-radius:8px;
+  transition:all 0.3s;
+  position:relative;
+}
+.hand-option:hover .option-label{ opacity:1; }
+.option-label{
+  font-family:'Caveat',cursive;
+  font-size:22px;font-weight:700;
+  color:rgba(255,255,255,0.7);
+  text-shadow:1px 1px 3px rgba(0,0,0,0.5);
+  transition:all 0.3s;
+  text-align:center;
+}
+.option-label.active{ color:rgba(255,255,255,0.95); text-shadow:0 0 20px rgba(255,255,255,0.4); }
+.option-count{
+  font-family:'Kalam',cursive;
+  font-size:13px;
+  color:rgba(255,255,255,0.4);
+  margin-top:4px;
+}
+
+/* THE HAND SVG */
+.hand-svg{
+  position:absolute;
+  bottom:-10px;
+  transition:left 0.6s cubic-bezier(0.34,1.56,0.64,1), transform 0.6s cubic-bezier(0.34,1.56,0.64,1);
+  filter:drop-shadow(2px 4px 6px rgba(0,0,0,0.4));
+  pointer-events:none;
+  z-index:10;
+}
+
+/* ERASER */
+.eraser{
+  width:56px;height:24px;
+  background:linear-gradient(180deg,#e8c4a0 0%,#d4a574 50%,#c49060 100%);
+  border-radius:4px;
+  box-shadow:inset 0 1px 3px rgba(255,255,255,0.4),0 2px 6px rgba(0,0,0,0.4);
+  cursor:pointer;
+  transition:all 0.2s;
+  position:relative;
+  font-size:10px;
+  display:flex;align-items:center;justify-content:center;
+  color:rgba(100,60,20,0.7);
+  font-family:'Kalam',cursive;
+  font-weight:700;
+  letter-spacing:1px;
+  overflow:hidden;
+}
+.eraser::before{
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:6px;
+  background:rgba(255,255,255,0.15);
+  border-radius:4px 4px 0 0;
+}
+.eraser:hover{ transform:scale(1.05) rotate(-2deg); }
+.eraser.erasing{ animation:eraseAnim 0.4s ease; }
+@keyframes eraseAnim{
+  0%{transform:translateX(0) rotate(0)}
+  25%{transform:translateX(-8px) rotate(-5deg)}
+  75%{transform:translateX(8px) rotate(5deg)}
+  100%{transform:translateX(0) rotate(0)}
+}
+
+/* CHALK DUST */
+.chalk-dust{
+  position:fixed;pointer-events:none;z-index:1000;
+}
+.dust-particle{
+  position:absolute;
+  width:3px;height:3px;
+  background:rgba(255,255,255,0.7);
+  border-radius:50%;
+  animation:dustFly 0.8s ease-out forwards;
+}
+@keyframes dustFly{
+  0%{opacity:1;transform:translate(0,0) scale(1)}
+  100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(0)}
+}
+
+/* UPLOAD ZONE */
+.upload-zone{
+  border:3px dashed rgba(255,255,255,0.25);
+  border-radius:8px;
+  padding:48px 32px;
+  text-align:center;
+  cursor:pointer;
+  transition:all 0.3s;
+  position:relative;
+  background:rgba(0,0,0,0.1);
+  margin:0 24px 24px;
+}
+.upload-zone:hover,.upload-zone.drag{
+  border-color:rgba(255,255,255,0.55);
+  background:rgba(255,255,255,0.05);
+}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+
+/* STATS */
+.stats-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+  margin:0 24px 24px;
+}
+.stat-box{
+  background:rgba(0,0,0,0.2);
+  border:1.5px solid rgba(255,255,255,0.15);
+  border-radius:6px;
+  padding:14px;
+  text-align:center;
+}
+.stat-num{
+  font-family:'Caveat',cursive;
+  font-size:36px;font-weight:700;
+  line-height:1;margin-bottom:4px;
+}
+.stat-lbl{font-size:11px;color:rgba(255,255,255,0.45);letter-spacing:1px;text-transform:uppercase;font-family:'Kalam',cursive}
+
+/* SESSION CARDS */
+.session-card{
+  border-radius:8px;
+  overflow:hidden;
+  margin:0 24px 20px;
+  border:1.5px solid rgba(255,255,255,0.12);
+  background:rgba(0,0,0,0.2);
+  animation:fadeUp 0.4s ease both;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.sc-header{
+  padding:16px 20px;
+  display:flex;align-items:center;gap:14px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+}
+.sc-num{
+  width:36px;height:36px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Caveat',cursive;font-size:20px;font-weight:700;flex-shrink:0;
+}
+.sc-title{ font-family:'Caveat',cursive;font-size:20px;font-weight:700; }
+.sc-date{ font-size:13px;color:rgba(255,255,255,0.5);font-family:'Kalam',cursive;margin-top:2px; }
+.sc-badge{
+  margin-left:auto;padding:4px 12px;border-radius:20px;
+  font-size:11px;font-weight:700;font-family:'Kalam',cursive;white-space:nowrap;
+}
+.sc-body{ padding:20px; }
+
+/* COPY BOX */
+.copy-box{
+  background:rgba(0,0,0,0.25);
+  border:1px solid rgba(255,255,255,0.12);
+  border-radius:6px;
+  padding:14px;
+  font-size:12px;
+  color:rgba(255,255,255,0.8);
+  word-break:break-all;
+  line-height:1.7;
+  max-height:100px;
+  overflow-y:auto;
+  margin-bottom:10px;
+  font-family:'Kalam',cursive;
+  user-select:all;
+  cursor:text;
+}
+.reminder-body{
+  background:rgba(0,0,0,0.25);
+  border:1px solid rgba(255,255,255,0.12);
+  border-radius:6px;
+  padding:14px;
+  font-size:12px;
+  color:rgba(255,255,255,0.85);
+  white-space:pre-wrap;
+  line-height:1.75;
+  font-family:'Kalam',cursive;
+  margin-bottom:10px;
+  user-select:all;
+}
+
+/* CHALK BUTTONS */
+.chalk-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 18px;
+  border-radius:6px;
+  font-family:'Caveat',cursive;
+  font-size:15px;font-weight:700;
+  cursor:pointer;border:none;
+  transition:all 0.2s;
+  letter-spacing:0.3px;
+  text-decoration:none;
+}
+.btn-chalk-primary{
+  background:rgba(255,255,255,0.15);
+  border:2px solid rgba(255,255,255,0.4);
+  color:rgba(255,255,255,0.9);
+  box-shadow:0 2px 8px rgba(0,0,0,0.3);
+}
+.btn-chalk-primary:hover{background:rgba(255,255,255,0.22);border-color:rgba(255,255,255,0.6)}
+.btn-chalk-copy{
+  background:rgba(0,0,0,0.2);
+  border:1.5px solid rgba(255,255,255,0.2);
+  color:rgba(255,255,255,0.7);
+}
+.btn-chalk-copy:hover{border-color:rgba(134,239,172,0.6);color:rgba(134,239,172,0.9)}
+.btn-chalk-ghost{background:transparent;border:1.5px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.45)}
+.btn-chalk-ghost:hover{border-color:rgba(255,255,255,0.35);color:rgba(255,255,255,0.7)}
+
+/* TABS */
+.msg-tab{
+  padding:6px 14px;border-radius:5px;font-size:14px;font-weight:600;
+  cursor:pointer;border:1.5px solid rgba(255,255,255,0.15);background:transparent;
+  color:rgba(255,255,255,0.45);transition:all 0.2s;font-family:'Caveat',cursive;
+}
+
+/* TABLE */
+.chalk-table{width:100%;border-collapse:collapse;font-size:12px;font-family:'Kalam',cursive}
+.chalk-table thead th{
+  padding:10px 14px;text-align:left;
+  font-family:'Caveat',cursive;font-size:13px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;
+  color:rgba(255,255,255,0.4);
+  border-bottom:1px solid rgba(255,255,255,0.1);
+  background:rgba(0,0,0,0.15);
+}
+.chalk-table tbody tr{border-bottom:1px solid rgba(255,255,255,0.05);transition:background .15s}
+.chalk-table tbody tr:hover{background:rgba(255,255,255,0.04)}
+.chalk-table tbody td{padding:11px 14px;color:rgba(255,255,255,0.8);vertical-align:middle}
+.td-name{font-family:'Caveat',cursive;font-size:15px;font-weight:700}
+.phone-chip{display:inline-flex;align-items:center;gap:5px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:3px 9px;font-size:11px}
+.db{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:700;font-family:'Kalam',cursive}
+.db-past{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.35)}
+.db-today{background:rgba(239,68,68,0.2);color:#fca5a5}
+.db-soon{background:rgba(245,158,11,0.15);color:#fcd34d}
+.db-upcoming{background:rgba(34,197,94,0.12);color:#86efac}
+
+/* SEARCH */
+.chalk-search{
+  background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.15);
+  border-radius:6px;padding:7px 12px;color:rgba(255,255,255,0.8);
+  font-size:13px;font-family:'Kalam',cursive;width:160px;
+  transition:border-color .2s;
+}
+.chalk-search:focus{outline:none;border-color:rgba(255,255,255,0.4)}
+.chalk-search::placeholder{color:rgba(255,255,255,0.3)}
+
+/* LINK CARD */
+.link-card{
+  display:flex;align-items:center;gap:14px;
+  background:rgba(0,0,0,0.2);border:1.5px solid rgba(255,255,255,0.12);
+  border-radius:8px;padding:16px 20px;text-decoration:none;color:rgba(255,255,255,0.85);
+  transition:all 0.2s;margin:0 24px 20px;
+}
+.link-card:hover{background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.28);transform:translateY(-1px)}
+.link-title{font-family:'Caveat',cursive;font-size:17px;font-weight:700;margin-bottom:2px}
+.link-sub{font-size:11px;color:rgba(255,255,255,0.4);font-family:'Kalam',cursive}
+
+/* DIVIDER */
+.chalk-divider{
+  display:flex;align-items:center;gap:14px;
+  margin:28px 24px 20px;
+  font-family:'Caveat',cursive;font-size:18px;font-weight:700;
+  color:rgba(255,255,255,0.5);
+}
+.chalk-divider::before,.chalk-divider::after{
+  content:'';flex:1;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);
+}
+
+/* PLABEL */
+.plabel{font-family:'Caveat',cursive;font-size:14px;font-weight:700;color:rgba(255,255,255,0.45);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px}
+
+/* COPY FB */
+.copy-fb-ok{font-size:12px;color:#86efac;font-family:'Kalam',cursive;transition:opacity 0.3s}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:50px;left:50%;transform:translateX(-50%);
+  background:rgba(20,30,20,0.95);border:1px solid rgba(255,255,255,0.2);
+  color:rgba(255,255,255,0.9);padding:11px 22px;border-radius:8px;
+  font-size:14px;font-family:'Kalam',cursive;
+  opacity:0;pointer-events:none;transition:opacity 0.3s;z-index:999;
+  white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);
+}
+.toast.show{opacity:1}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:2px}
+
+/* ALL EMAILS PANEL */
+.all-email-panel{
+  background:rgba(0,0,0,0.2);border:1.5px solid rgba(255,255,255,0.12);
+  border-radius:8px;padding:20px;margin:0 24px 20px;
+}
+
+/* HEADER */
+.board-header{
+  padding:28px 32px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:12px;
+}
+.header-left{display:flex;align-items:center;gap:14px}
+.kelly-badge{
+  width:44px;height:44px;background:#C8102E;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Caveat',cursive;font-size:20px;font-weight:700;color:white;
+  box-shadow:0 0 20px rgba(200,16,46,0.4),inset 0 1px 0 rgba(255,255,255,0.2);
+  flex-shrink:0;
+}
+.mode-chip{
+  padding:5px 14px;border-radius:20px;font-size:13px;font-weight:700;
+  font-family:'Caveat',cursive;letter-spacing:0.5px;cursor:pointer;border:none;
+  transition:all 0.2s;
+}
+
+@media(max-width:640px){
+  .chalk-frame{margin:10px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .board-header{padding:20px 16px 12px}
+  .upload-zone,.all-email-panel,.link-card,.chalk-divider,.session-card{margin-left:12px;margin-right:12px}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useRef, useEffect, useCallback } = React;
+
+// ── CONSTANTS ──────────────────────────────────────────────
+const RESCHEDULE_INFO   = 'https://app.pm.kelly.com/public/apply/1f0bf01f-7dc1-4bda-aece-0c882d41e4e5';
+const RESCHEDULE_ORIENT = 'https://calendly.com/miami-dade-onboarding-appointment/miami-dade-orientation-waterford?back=1&month=2026-03';
+const RULES = `\n📋 IMPORTANT REMINDERS — Please read carefully:\n\n✅ Arrive on time. Late arrivals may not be admitted.\n👔 Dress Code: Business Casual is required.\n   (No shorts, flip-flops, tank tops, or overly casual attire.)\n🚫 No companions or guests are allowed inside the building.\n🐾 No pets allowed on the premises.\n📵 Please silence your phone during the session.`;
+const COLORS = [
+  { hex:'#a78bfa', bg:'rgba(167,139,250,0.15)', border:'rgba(167,139,250,0.3)' },
+  { hex:'#34d399', bg:'rgba(52,211,153,0.15)',  border:'rgba(52,211,153,0.3)'  },
+  { hex:'#fb923c', bg:'rgba(251,146,60,0.15)',  border:'rgba(251,146,60,0.3)'  },
+  { hex:'#38bdf8', bg:'rgba(56,189,248,0.15)',  border:'rgba(56,189,248,0.3)'  },
+  { hex:'#f472b6', bg:'rgba(244,114,182,0.15)', border:'rgba(244,114,182,0.3)' },
+  { hex:'#facc15', bg:'rgba(250,204,21,0.15)',  border:'rgba(250,204,21,0.3)'  },
+];
+
+function tplInfo(grp, tab) {
+  if (tab === 'text') return `Hi! 👋 Reminder from Kelly Education — your Info Session (${grp.label}) is on ${grp.dateStr}.\n\n📄 Bring: Valid Photo ID, SS card, proof of education & work authorization\n✅ Arrive on time | 👔 Business Casual | 🚫 No companions | 🐾 No pets\n\nThank you! — Kelly Education Miami-Dade`;
+  return `Hi,\n\nThis is a friendly reminder from Kelly Education about your upcoming Info Session — ${grp.label}, scheduled for:\n📅 ${grp.dateStr}\n\n📄 DOCUMENTS TO BRING — Please have the following ready:\n\n  • A valid government-issued photo ID\n  • Social Security card or a document verifying your SSN\n  • Proof of highest level of education (diploma, transcript, or degree)\n  • Work authorization documents (if applicable)\n${RULES}\n\nWe look forward to seeing you!\n\nBest regards,\nKelly Education – Miami-Dade Team`;
+}
+
+function tplOrient(grp, tab) {
+  if (tab === 'text') return `Hi! 👋 Reminder from Kelly Education — your New Hire Orientation (${grp.label}) is on ${grp.dateStr}.\n\n✅ Arrive on time | 👔 Business Casual | 🚫 No companions | 🐾 No pets\n\nThank you! — Kelly Education Miami-Dade`;
+  return `Hi,\n\nThis is a reminder from Kelly Education that your New Hire Orientation — ${grp.label} is scheduled for:\n📅 ${grp.dateStr}\n${RULES}\n\nWe look forward to welcoming you to the team!\n\nBest regards,\nKelly Education – Miami-Dade Onboarding Team`;
+}
+
+// ── XLSX PARSER ────────────────────────────────────────────
+function parseXLSX(buffer) {
+  const wb  = XLSX.read(buffer, { type:'binary', cellDates:false });
+  const ws  = wb.Sheets[wb.SheetNames[0]];
+  const range = XLSX.utils.decode_range(ws['!ref']);
+
+  const headers = [];
+  for (let c = range.s.c; c <= range.e.c; c++) {
+    const cell = ws[XLSX.utils.encode_cell({ r:range.s.r, c })];
+    headers.push(cell ? String(cell.v).toLowerCase().trim() : `col${c}`);
+  }
+  const findCol = (candidates) => {
+    for (const cd of candidates) {
+      const i = headers.findIndex(h => h.includes(cd));
+      if (i >= 0) return i;
+    }
+    return -1;
+  };
+  const idx = {
+    name:  findCol(['name','full name','nombre','candidate','employee']),
+    email: findCol(['email','e-mail','correo','mail']),
+    phone: findCol(['phone','phone number','telefono','tel','mobile','cell']),
+    date:  findCol(['date','session date','fecha','orientation date','info session date']),
+  };
+  const pad = n => String(n).padStart(2,'0');
+  const raw = [];
+  for (let r = range.s.r + 1; r <= range.e.r; r++) {
+    const get = c => { if (c<0) return null; return ws[XLSX.utils.encode_cell({r,c})] || null; };
+    const nameCell = get(idx.name);
+    if (!nameCell) continue;
+    const name  = String(nameCell.v).trim(); if (!name) continue;
+    const email = get(idx.email) ? String(get(idx.email).v).trim() : '';
+    const phone = get(idx.phone) ? String(get(idx.phone).v).trim().replace(/^[\+'\\s]*/,'') : '';
+    let dateObj = null, dateKey = '';
+    const dc = get(idx.date);
+    if (dc) {
+      if (dc.t === 'n') {
+        const serial = Math.round(dc.v * 10000) / 10000;
+        const p = XLSX.SSF.parse_date_code(serial);
+        dateKey = `${p.y}${pad(p.m)}${pad(p.d)}${pad(p.H)}${pad(p.M)}`;
+        dateObj = new Date(p.y, p.m-1, p.d, p.H, p.M, 0);
+      } else if (dc.t === 'd') {
+        dateObj = new Date(dc.v);
+        dateKey = `${dateObj.getFullYear()}${pad(dateObj.getMonth()+1)}${pad(dateObj.getDate())}${pad(dateObj.getHours())}${pad(dateObj.getMinutes())}`;
+      } else {
+        const s = String(dc.v).trim();
+        dateObj = new Date(s);
+        dateKey = isNaN(dateObj) ? s.replace(/\W/g,'') : `${dateObj.getFullYear()}${pad(dateObj.getMonth()+1)}${pad(dateObj.getDate())}${pad(dateObj.getHours())}${pad(dateObj.getMinutes())}`;
+        if (isNaN(dateObj)) dateObj = null;
+      }
+    }
+    raw.push({ name, email, phone, dateObj, dateKey });
+  }
+  // Deduplicate
+  const seen = new Set();
+  let dupes = 0;
+  const records = raw.filter(r => {
+    const key = r.email ? r.email.toLowerCase() : `${r.name.toLowerCase()}|${r.dateKey}`;
+    if (seen.has(key)) { dupes++; return false; }
+    seen.add(key); return true;
+  });
+  // Group
+  const map = new Map();
+  for (const r of records) {
+    const key = r.dateKey || 'unknown';
+    if (!map.has(key)) map.set(key, { key, dateObj:r.dateObj, recs:[] });
+    map.get(key).recs.push(r);
+  }
+  const groups = Array.from(map.values())
+    .sort((a,b) => a.key.localeCompare(b.key))
+    .map((g, i) => {
+      const dt = g.dateObj;
+      const dateStr = dt ? dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}) + ' at ' + dt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : g.key;
+      const emails = g.recs.map(r => r.email).filter(Boolean);
+      return { key:g.key, label:`Session ${i+1}`, dateStr, dateObj:dt, emails, records:g.recs };
+    });
+  return { records, groups, dupes };
+}
+
+// ── COPY UTIL ──────────────────────────────────────────────
+function copyToClipboard(text) {
+  if (navigator.clipboard) return navigator.clipboard.writeText(text);
+  return new Promise((res,rej) => {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); res(); } catch(e) { rej(e); }
+    document.body.removeChild(ta);
+  });
+}
+
+// ── DAYS UNTIL ─────────────────────────────────────────────
+function daysUntil(dt) {
+  if (!dt) return null;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const t = new Date(dt); t.setHours(0,0,0,0);
+  return Math.round((t-now)/86400000);
+}
+
+// ══════════════════════════════════════════════════════════
+//  HAND SELECTOR COMPONENT
+// ══════════════════════════════════════════════════════════
+function HandSelector({ onSelect }) {
+  const [hover, setHover] = useState(null);
+  const [handPos, setHandPos] = useState('center');
+  const [erasing, setErasing] = useState(false);
+  const [dustParticles, setDustParticles] = useState([]);
+  const infoRef = useRef(null);
+  const orientRef = useRef(null);
+  const containerRef = useRef(null);
+
+  const getHandLeft = () => {
+    if (!containerRef.current) return '50%';
+    const cRect = containerRef.current.getBoundingClientRect();
+    if (handPos === 'info' && infoRef.current) {
+      const r = infoRef.current.getBoundingClientRect();
+      return `${r.left - cRect.left + r.width/2 - 30}px`;
+    }
+    if (handPos === 'orient' && orientRef.current) {
+      const r = orientRef.current.getBoundingClientRect();
+      return `${r.left - cRect.left + r.width/2 - 30}px`;
+    }
+    return `calc(50% - 30px)`;
+  };
+
+  const handleErase = (e) => {
+    setErasing(true);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const particles = Array.from({length:12}, (_,i) => ({
+      id: Date.now()+i,
+      x: rect.left + Math.random()*rect.width,
+      y: rect.top + Math.random()*rect.height,
+      tx: (Math.random()-0.5)*60,
+      ty: -(Math.random()*40+10),
+    }));
+    setDustParticles(particles);
+    setTimeout(() => setErasing(false), 400);
+    setTimeout(() => setDustParticles([]), 900);
+  };
+
+  const handleClick = (type) => {
+    setHandPos(type);
+    setTimeout(() => onSelect(type), 700);
+  };
+
+  return (
+    <div style={{padding:'20px 32px 80px',position:'relative'}}>
+      {/* Chalk writing on board */}
+      <div style={{textAlign:'center',marginBottom:8}}>
+        <span className="chalk-title">Welcome to Kelly Education</span>
+      </div>
+      <div style={{textAlign:'center',marginBottom:4}}>
+        <span className="chalk-subtitle">MIAMI-DADE ONBOARDING REMINDERS</span>
+      </div>
+      <hr className="chalk-line" style={{margin:'16px 40px'}}/>
+      <div style={{textAlign:'center',marginBottom:40}}>
+        <span className="chalk-text" style={{fontSize:20}}>👇 Point to your session type to get started</span>
+      </div>
+
+      {/* Options */}
+      <div ref={containerRef} className="hand-container" style={{position:'relative',minHeight:160}}>
+        {/* Info Session */}
+        <div
+          ref={infoRef}
+          className="hand-option"
+          onMouseEnter={() => setHandPos('info')}
+          onClick={() => handleClick('info')}
+          style={{flex:1,maxWidth:280}}
+        >
+          <div style={{fontSize:56,filter:'drop-shadow(0 4px 8px rgba(0,0,0,0.4))'}}>📘</div>
+          <div className={`option-label ${handPos==='info'?'active':''}`}>Info Session</div>
+          <div className="option-count">Pre-hire meeting</div>
+          {handPos==='info' && (
+            <div style={{
+              position:'absolute',inset:-4,borderRadius:10,
+              border:'2px dashed rgba(255,255,255,0.25)',
+              background:'rgba(255,255,255,0.04)',
+              pointerEvents:'none'
+            }}/>
+          )}
+        </div>
+
+        {/* Hand pointing SVG */}
+        <div
+          className="hand-svg"
+          style={{
+            position:'absolute',
+            bottom:-20,
+            left: handPos==='info' ? (infoRef.current ? `${infoRef.current.offsetLeft + infoRef.current.offsetWidth/2 - 28}px` : '20%')
+                 : handPos==='orient' ? (orientRef.current ? `${orientRef.current.offsetLeft + orientRef.current.offsetWidth/2 - 28}px` : '60%')
+                 : 'calc(50% - 28px)',
+            transition:'left 0.55s cubic-bezier(0.34,1.56,0.64,1)',
+          }}
+        >
+          <svg width="56" height="80" viewBox="0 0 56 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Wrist/hand */}
+            <path d="M18 80 L18 38 Q18 32 24 30 L32 30 Q38 32 38 38 L38 80Z" fill="#f5cba7" stroke="#d4956a" strokeWidth="1"/>
+            {/* Index finger extended */}
+            <path d="M24 30 L24 10 Q24 4 28 4 Q32 4 32 10 L32 30Z" fill="#f5cba7" stroke="#d4956a" strokeWidth="1"/>
+            {/* Middle finger slightly bent */}
+            <path d="M32 30 L32 14 Q32 9 35.5 9 Q39 9 39 14 L39 30Z" fill="#edb88a" stroke="#d4956a" strokeWidth="1"/>
+            {/* Ring finger curled */}
+            <path d="M38 30 L39 20 Q39.5 15 42 15.5 Q44.5 16 44 21 L43 30Z" fill="#edb88a" stroke="#d4956a" strokeWidth="1"/>
+            {/* Pinky curled */}
+            <path d="M43 30 L44 23 Q44.5 19 46.5 19.5 Q48.5 20 48 24 L47 30Z" fill="#e8a97a" stroke="#d4956a" strokeWidth="1"/>
+            {/* Thumb */}
+            <path d="M18 38 L10 36 Q6 34 7 30 Q8 26 12 27 L18 30Z" fill="#f5cba7" stroke="#d4956a" strokeWidth="1"/>
+            {/* Knuckle lines */}
+            <path d="M24 22 Q28 21 32 22" stroke="#d4956a" strokeWidth="0.7" fill="none"/>
+            <path d="M32 24 Q35.5 23 39 24" stroke="#d4956a" strokeWidth="0.7" fill="none"/>
+            {/* Fingernail on index */}
+            <ellipse cx="28" cy="7" rx="3" ry="2.5" fill="rgba(255,220,190,0.8)" stroke="#d4956a" strokeWidth="0.5"/>
+          </svg>
+        </div>
+
+        {/* New Hire Orientation */}
+        <div
+          ref={orientRef}
+          className="hand-option"
+          onMouseEnter={() => setHandPos('orient')}
+          onClick={() => handleClick('orient')}
+          style={{flex:1,maxWidth:280}}
+        >
+          <div style={{fontSize:56,filter:'drop-shadow(0 4px 8px rgba(0,0,0,0.4))'}}>🟠</div>
+          <div className={`option-label ${handPos==='orient'?'active':''}`}>New Hire Orientation</div>
+          <div className="option-count">Onboarding day</div>
+          {handPos==='orient' && (
+            <div style={{
+              position:'absolute',inset:-4,borderRadius:10,
+              border:'2px dashed rgba(255,255,255,0.25)',
+              background:'rgba(255,255,255,0.04)',
+              pointerEvents:'none'
+            }}/>
+          )}
+        </div>
+      </div>
+
+      {/* Eraser */}
+      <div style={{display:'flex',justifyContent:'center',marginTop:28,gap:16,alignItems:'center'}}>
+        <span className="chalk-text" style={{fontSize:14,opacity:0.5}}>Erase &amp; reset →</span>
+        <div
+          className={`eraser ${erasing?'erasing':''}`}
+          onClick={handleErase}
+          title="Eraser"
+        >ERASE</div>
+      </div>
+
+      {/* Dust particles */}
+      {dustParticles.map(p => (
+        <div
+          key={p.id}
+          className="dust-particle"
+          style={{
+            position:'fixed',
+            left:p.x, top:p.y,
+            '--tx': `${p.tx}px`,
+            '--ty': `${p.ty}px`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════
+//  SESSION CARD COMPONENT
+// ══════════════════════════════════════════════════════════
+function SessionCard({ grp, idx, sessionType, animDelay }) {
+  const [tab, setTab] = useState('email');
+  const [search, setSearch] = useState('');
+  const [emailFb, setEmailFb] = useState(false);
+  const [msgFb, setMsgFb] = useState(false);
+  const col = COLORS[idx % COLORS.length];
+
+  const template = sessionType === 'orient' ? tplOrient(grp, tab) : tplInfo(grp, tab);
+  const filtered = search
+    ? grp.records.filter(r =>
+        r.name.toLowerCase().includes(search.toLowerCase()) ||
+        (r.phone||'').toLowerCase().includes(search.toLowerCase()) ||
+        (r.email||'').toLowerCase().includes(search.toLowerCase())
+      )
+    : grp.records;
+
+  const copyEmails = async () => {
+    await copyToClipboard(grp.emails.join('; '));
+    setEmailFb(true); setTimeout(() => setEmailFb(false), 2500);
+  };
+  const copyMsg = async () => {
+    await copyToClipboard(template);
+    setMsgFb(true); setTimeout(() => setMsgFb(false), 2500);
+  };
+
+  const getDayStatus = (dt) => {
+    const d = daysUntil(dt);
+    if (d===null) return {cls:'db-upcoming',txt:'—'};
+    if (d<0)  return {cls:'db-past',    txt:`${Math.abs(d)}d ago`};
+    if (d===0)return {cls:'db-today',   txt:'TODAY'};
+    if (d<=3) return {cls:'db-soon',    txt:`In ${d}d`};
+    return {cls:'db-upcoming', txt:`In ${d}d`};
+  };
+
+  return (
+    <div className="session-card" style={{borderColor:col.border,animationDelay:`${animDelay}s`}}>
+      <div className="sc-header" style={{background:col.bg}}>
+        <div className="sc-num" style={{background:col.hex+'25',color:col.hex}}>
+          {idx+1}
+        </div>
+        <div>
+          <div className="sc-title" style={{color:col.hex}}>{grp.label}</div>
+          <div className="sc-date">📅 {grp.dateStr}</div>
+        </div>
+        <span className="sc-badge" style={{background:col.hex+'20',color:col.hex,border:`1px solid ${col.border}`}}>
+          {grp.records.length} candidates
+        </span>
+      </div>
+
+      <div className="sc-body">
+        {/* EMAILS */}
+        <div style={{marginBottom:20}}>
+          <div className="plabel">📧 Emails — {grp.label} ({grp.emails.length})</div>
+          <div className="copy-box">{grp.emails.join('; ') || 'No emails found'}</div>
+          <div style={{display:'flex',gap:10,alignItems:'center'}}>
+            <button className="chalk-btn btn-chalk-copy" onClick={copyEmails}>📋 Copy Emails</button>
+            {emailFb && <span className="copy-fb-ok">✅ Copied!</span>}
+          </div>
+        </div>
+
+        {/* TEMPLATE */}
+        <div style={{marginBottom:20}}>
+          <div className="plabel">✉️ Reminder Template</div>
+          <div className="msg-tabs" style={{display:'flex',gap:8,marginBottom:10}}>
+            {['email','text'].map(t => (
+              <button key={t} className="msg-tab"
+                style={tab===t ? {borderColor:col.hex,color:col.hex,background:col.bg} : {}}
+                onClick={() => setTab(t)}>
+                {t === 'email' ? 'Email Body' : 'Text / WhatsApp'}
+              </button>
+            ))}
+          </div>
+          <div className="reminder-body">{template}</div>
+          <div style={{display:'flex',gap:10,alignItems:'center'}}>
+            <button className="chalk-btn btn-chalk-copy" onClick={copyMsg}>📋 Copy Message</button>
+            {msgFb && <span className="copy-fb-ok">✅ Copied!</span>}
+          </div>
+        </div>
+
+        {/* TABLE */}
+        <div>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10,flexWrap:'wrap',gap:8}}>
+            <div className="plabel" style={{margin:0}}>👥 {grp.records.length} Candidates</div>
+            <input className="chalk-search" placeholder="Search…" value={search} onChange={e=>setSearch(e.target.value)}/>
+          </div>
+          <div style={{overflowX:'auto',borderRadius:6,border:'1px solid rgba(255,255,255,0.08)'}}>
+            <table className="chalk-table">
+              <thead>
+                <tr><th>#</th><th>Name</th><th>Phone</th><th>Email</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                {filtered.map((r,i) => {
+                  const {cls,txt} = getDayStatus(r.dateObj);
+                  const phone = (r.phone||'').replace(/^[\+'\s]*/,'');
+                  return (
+                    <tr key={i}>
+                      <td style={{color:'rgba(255,255,255,0.3)',fontSize:11,width:28}}>{i+1}</td>
+                      <td className="td-name">{r.name}</td>
+                      <td>{phone ? <span className="phone-chip">📞 {phone}</span> : <span style={{color:'rgba(255,255,255,0.25)'}}>—</span>}</td>
+                      <td style={{color:'rgba(255,255,255,0.45)',fontSize:12}}>{r.email||'—'}</td>
+                      <td><span className={`db ${cls}`}>{txt}</span></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════
+//  MAIN APP
+// ══════════════════════════════════════════════════════════
+function App() {
+  const [screen, setScreen] = useState('select'); // 'select' | 'upload' | 'results'
+  const [sessionType, setSessionType] = useState(null);
+  const [dragging, setDragging] = useState(false);
+  const [groups, setGroups] = useState([]);
+  const [records, setRecords] = useState([]);
+  const [fileName, setFileName] = useState('');
+  const [dupes, setDupes] = useState(0);
+  const [allEmailFb, setAllEmailFb] = useState(false);
+  const [toast, setToast] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
+  const [erasing, setErasing] = useState(false);
+
+  const showToast = (msg) => {
+    setToast(msg); setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 2800);
+  };
+
+  const handleSessionSelect = (type) => {
+    setSessionType(type);
+    setScreen('upload');
+  };
+
+  const processFile = useCallback((file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const { records, groups, dupes } = parseXLSX(e.target.result);
+        if (!records.length) { showToast('⚠️ No valid rows found'); return; }
+        setRecords(records);
+        setGroups(groups);
+        setDupes(dupes);
+        setFileName(file.name);
+        setScreen('results');
+        showToast(`📋 ${records.length} records · ${groups.length} sessions${dupes ? ` · ${dupes} dupes removed` : ''}`);
+      } catch(err) { showToast('❌ Error: ' + err.message); }
+    };
+    reader.readAsBinaryString(file);
+  }, []);
+
+  const handleDrop = (e) => {
+    e.preventDefault(); setDragging(false);
+    if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files[0]) processFile(e.target.files[0]);
+  };
+
+  const handleErase = (e) => {
+    setErasing(true);
+    setTimeout(() => {
+      setErasing(false);
+      setScreen('select');
+      setSessionType(null);
+      setGroups([]); setRecords([]); setFileName(''); setDupes(0);
+    }, 500);
+  };
+
+  const copyAllEmails = async () => {
+    const emails = records.map(r => r.email).filter(Boolean).join('; ');
+    if (!emails) { showToast('⚠️ No emails found'); return; }
+    await copyToClipboard(emails);
+    setAllEmailFb(true); setTimeout(() => setAllEmailFb(false), 2500);
+    showToast('📋 All emails copied — paste into Outlook To: field');
+  };
+
+  const today    = records.filter(r => daysUntil(r.dateObj) === 0).length;
+  const upcoming = records.filter(r => { const d=daysUntil(r.dateObj); return d!==null&&d>0; }).length;
+
+  return (
+    <div className="chalkboard">
+      <div className="chalk-frame">
+
+        {/* HEADER */}
+        <div className="board-header">
+          <div className="header-left">
+            <div className="kelly-badge">K</div>
+            <div>
+              <div className="chalk-title" style={{fontSize:'clamp(20px,3vw,32px)'}}>Onboarding Reminders</div>
+              <div className="chalk-subtitle" style={{fontSize:'clamp(10px,1.5vw,14px)'}}>KELLY EDUCATION · MIAMI-DADE</div>
+            </div>
+          </div>
+          {sessionType && (
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <button
+                className="mode-chip chalk-text"
+                style={sessionType==='info'
+                  ? {background:'rgba(59,130,246,0.15)',border:'1px solid rgba(59,130,246,0.35)',color:'#93c5fd'}
+                  : {background:'rgba(245,158,11,0.15)',border:'1px solid rgba(245,158,11,0.35)',color:'#fcd34d'}
+                }
+                onClick={() => { setScreen('select'); setSessionType(null); setGroups([]); setRecords([]); }}
+              >
+                {sessionType==='info' ? '📘 Info Session' : '🟠 New Hire Orientation'} ↩
+              </button>
+            </div>
+          )}
+        </div>
+
+        <hr className="chalk-line" style={{margin:'0 24px 0'}}/>
+
+        {/* ── SCREEN: SELECT ── */}
+        {screen === 'select' && (
+          <HandSelector onSelect={handleSessionSelect} />
+        )}
+
+        {/* ── SCREEN: UPLOAD ── */}
+        {screen === 'upload' && (
+          <div style={{padding:'32px 0 40px'}}>
+            <div style={{textAlign:'center',marginBottom:28}}>
+              <div className="chalk-text" style={{fontSize:22,marginBottom:6}}>
+                {sessionType==='info' ? '📘 Info Session' : '🟠 New Hire Orientation'}
+              </div>
+              <div className="chalk-text" style={{fontSize:16,opacity:0.55}}>Upload your Excel file to get started</div>
+            </div>
+            <div
+              className={`upload-zone ${dragging?'drag':''}`}
+              onDragOver={e=>{e.preventDefault();setDragging(true)}}
+              onDragLeave={()=>setDragging(false)}
+              onDrop={handleDrop}
+            >
+              <input type="file" accept=".xlsx,.xls,.csv" onChange={handleFileChange}/>
+              <div style={{fontSize:52,marginBottom:14}}>📋</div>
+              <div className="chalk-text" style={{fontSize:22,marginBottom:6}}>Drop your Excel file here</div>
+              <div className="chalk-text" style={{fontSize:14,opacity:0.5}}>Columns: name · email · phone · date</div>
+            </div>
+            <div style={{display:'flex',justifyContent:'center',marginTop:20}}>
+              <button className="chalk-btn btn-chalk-ghost" onClick={()=>setScreen('select')}>← Back</button>
+            </div>
+          </div>
+        )}
+
+        {/* ── SCREEN: RESULTS ── */}
+        {screen === 'results' && (
+          <div style={{paddingBottom:60}}>
+            {/* Stats */}
+            <div className="stats-grid" style={{marginTop:20}}>
+              {[
+                {n:records.length, l:'Total', c:'#C8102E'},
+                {n:today,          l:'Today', c:'#3b82f6'},
+                {n:groups.length,  l:'Sessions', c:'#f59e0b'},
+                {n:upcoming,       l:'Upcoming', c:'#22c55e'},
+              ].map(s => (
+                <div className="stat-box" key={s.l}>
+                  <div className="stat-num" style={{color:s.c}}>{s.n}</div>
+                  <div className="stat-lbl">{s.l}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Action buttons */}
+            <div style={{display:'flex',gap:10,flexWrap:'wrap',padding:'0 24px',margin:'16px 0'}}>
+              <button className="chalk-btn btn-chalk-primary" onClick={copyAllEmails}>
+                📋 Copy All Emails for Outlook
+              </button>
+              {allEmailFb && <span className="copy-fb-ok" style={{alignSelf:'center'}}>✅ Copied!</span>}
+              <button className="chalk-btn btn-chalk-ghost"
+                style={{marginLeft:'auto'}}
+                onClick={handleErase}>
+                🗑 Clear
+              </button>
+            </div>
+
+            {/* All emails panel */}
+            <div className="all-email-panel">
+              <div className="plabel">📧 All Emails — paste into Outlook To: field</div>
+              <div className="copy-box">{records.map(r=>r.email).filter(Boolean).join('; ') || 'No emails found'}</div>
+              {dupes > 0 && (
+                <div style={{fontSize:12,color:'#fcd34d',fontFamily:"'Kalam',cursive",marginTop:4}}>
+                  🧹 {dupes} duplicate{dupes>1?'s':''} removed
+                </div>
+              )}
+            </div>
+
+            {/* Reschedule link */}
+            <a
+              className="link-card"
+              href={sessionType==='orient' ? RESCHEDULE_ORIENT : RESCHEDULE_INFO}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span style={{fontSize:26}}>{sessionType==='orient' ? '📅' : '🔗'}</span>
+              <div>
+                <div className="link-title">{sessionType==='orient' ? 'Reschedule New Hire Orientation' : 'Schedule In-Person Interview'}</div>
+                <div className="link-sub">Send this link to candidates who need to reschedule</div>
+              </div>
+            </a>
+
+            {/* Divider */}
+            <div className="chalk-divider">
+              {sessionType==='orient' ? '🟠 New Hire Orientation' : '📘 Info Session'} — {groups.length} Session{groups.length!==1?'s':''}
+            </div>
+
+            {/* Session cards */}
+            {groups.map((grp, i) => (
+              <SessionCard
+                key={grp.key}
+                grp={grp}
+                idx={i}
+                sessionType={sessionType}
+                animDelay={i * 0.1}
+              />
+            ))}
+          </div>
+        )}
+
+      </div>
+
+      {/* CHALK TRAY */}
+      <div className="chalk-tray">
+        {[
+          '#f5f5f5','#f5f5dc','#c8e6c9','#ffe0b2','#e1f5fe','#f8bbd0','#e8d5b7'
+        ].map((c,i) => (
+          <div key={i} className="chalk-piece" style={{background:c}}/>
+        ))}
+        <div
+          className={`eraser ${erasing?'erasing':''}`}
+          onClick={handleErase}
+          style={{marginLeft:12}}
+          title="Erase everything"
+        >ERASE</div>
+      </div>
+
+      {/* TOAST */}
+      <div className={`toast ${toastVisible?'show':''}`}>{toast}</div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
